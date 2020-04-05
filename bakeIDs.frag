@@ -1,8 +1,10 @@
 #include "traceRay.frag"
 #include "utils.frag"
 
+#define MAX_NUMBER_OF_IDS 1024 //has to be 1024, due to getNumberOfIntensities not being designed for bigger inputs
+
 //workaround to write vector at dynamic index, to avoid error X3500: Array reference cannot be used as an l-value,not natively addressable
-void fillVectorAtIndex (inout ivec3 vec, uint index, int value)
+void fillVectorAtIndex (inout uvec3 vec, uint index, int value)
 {
 	if(index == 0u){
 		vec[0] = value;
@@ -17,10 +19,10 @@ void fillVectorAtIndex (inout ivec3 vec, uint index, int value)
 
 //returns a value from the intensity sequence, normalized from [0,255] to [0,1]
 //intensity sequence: 256 values, starting with 255 and then the following values with maximal distance to the previous ones: 255,0,127,192,64,...
-//this is achieved by iterating though all 8 bits of 256 in different phases
-float getIntensity( uint indexIn )
+//this is achieved by iterating though all 8 bits of 256, in different phases
+float getIntensity( uint patternIdx )
 {
-	uint idx = (indexIn - 1u)%256u; //all bits 1 comes first, then all 0, then MSB 1, etc. -> everything is shifted by one
+	uint idx = (patternIdx - 1u)%256u; //all bits 1 comes first, then all 0, then MSB 1, etc. -> everything is shifted by one
 	uint intensity = 0u;
 	//builds the number bit-by-bit, each bit cycling in a different phase
 	//this loop can be unrolled to this:
@@ -34,29 +36,44 @@ float getIntensity( uint indexIn )
 	//intensity+=    ((idx/128)%2);
 	for(uint i=0u;i<8u;i++)
 	{
-		intensity+=(uint)pow(2u,7u-i)*((idx/(uint)pow(2u,i))%2u); 
+		intensity+=uint(pow(2u,7u-i))*((idx/uint(pow(2u,i)))%2u); 
 	}
 	return (float)intensity/255.0;
-	
+
+}
+
+//workaround for floor(pow(idIn, 1.0/3.0)), since it is slow and not precise enough
+//Is only designed to work for idIn<=1024, which is ensured by the parameter of the call to getUniqueColor.
+uint getFloorOfCubeRoot( uint idIn )
+{
+	uint wholenNumbers[10] = {1,8,27,64,125,216,343,512,729,1000};
+	for(uint i=0;i<10;i++)
+	{
+		if(idIn< wholenNumbers[i])
+		{
+			return i;
+		}
+	}
+	return i;
 }
 
 // returns a pattern containing the indices for the intensity sequence (see documentation of getUniqueColor)
-uvec3 getPattern( uint indexIn )
+uvec3 getPattern( uint idIn )
 {
-	uint numIntensities = floor(pow(indexIn, 1.0/3.0)); //maximal number of different values needed
-	uint index = indexIn-((uint)pow(numIntensities,3)); //pattern index
+	uint numIntensities = getFloorOfCubeRoot(idIn); //maximal number of different values needed to display idIn colors.
+	uint index = idIn-((uint)pow(numIntensities,3)); //internal pattern index
 	
 	//case 1: all three values are the same in this pattern
 	if (index == 0u) {
 		return uvec3(numIntensities,numIntensities,numIntensities);
 	}
 	//preparation for case 2 and 3
-	index--; //since everything is shifted by one so white comes first
+	index= index - 1u; //since everything is shifted by one so white comes first
 	//the three channels of the pattern vector
 	uint channelIdxA = index % 3u;
 	uint channelIdxB = (index+1u) % 3u;
 	uint channelIdxC = (index+2u) % 3u;
-	
+
 	//case 2: there are only two values involved in this pattern
 	if ((index / 3u) < numIntensities) {
 		uvec3 pattern;
@@ -80,7 +97,7 @@ uvec3 getPattern( uint indexIn )
 //We assume the material, object and group IDs starts at zero. Every ID x that appears means that there have to be at least x colors.
 //We can define a sequence of colors that starts with the maximal distance (black/white), then contains the primary colors, the mixtures between the primary colors, then the mixtures between the mixtures, and so on.
 //If we index this sequence with the material/object/group ID, the low IDs get colors that are very different form each other and with rising ID, the colors get more and more similar.
-//This algorithm, given an index, creates the color that would appear in this sequence at that index.
+//This algorithm, given an ID, creates the color that would appear in this sequence at that index.
 //
 //Each color has three channels. The channels contain the values of red, blue and green.
 //We can generate many different colors with only a small set of different channel values, which are used in many different combinations.
@@ -104,11 +121,14 @@ uvec3 getPattern( uint indexIn )
 //
 //The algorithm now consists of two main steps.
 //First, we generate a pattern that determines which intensities we have to use and returns indices on the sequence of intensities.
-//Second, we determine the actual value for this index for each channel and normalize it to [0.0,1.0].
-vec3 getUniqueColor( int index )
+//Second, we determine the actual value for each of the three indices in the pattern and normalize it to [0.0,1.0].
+vec3 getUniqueColor( uint idIn )
 {
-	uvec3 pattern = getPattern(index);
-	return vec3 (getIntensity(pattern[0]),getIntensity(pattern[1]),getIntensity(pattern[2]));
+	uvec3 pattern = getPattern(idIn);
+		return vec3 (
+		getIntensity(pattern[0]),
+		getIntensity(pattern[1]),
+		getIntensity(pattern[2]) );
 }
 
 
@@ -144,14 +164,13 @@ END_PARAMS
 		uint gid = uGroupIDs[ hit.triangleIndex ];
 
 		//output0: Mat, Obj, and Group ID
-		OUT_COLOR0.rgb = getUniqueColor(id);
-		
+		OUT_COLOR0.rgb = getUniqueColor( id % MAX_NUMBER_OF_IDS ); //modulo necessary for getNumberOfIntensities
 		OUT_COLOR0.a = 1.0;
 
-		OUT_COLOR1.rgb = getUniqueColor(oid);
+		OUT_COLOR1.rgb = getUniqueColor( oid % MAX_NUMBER_OF_IDS ); //modulo necessary for getNumberOfIntensities
 		OUT_COLOR1.a = 1.0;
 
-		OUT_COLOR2.rgb = getUniqueColor(gid);
+		OUT_COLOR2.rgb = getUniqueColor( gid % MAX_NUMBER_OF_IDS ); //modulo necessary for getNumberOfIntensities
 		OUT_COLOR2.a = 1.0;
 	}
 }

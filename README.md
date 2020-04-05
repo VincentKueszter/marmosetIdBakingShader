@@ -26,7 +26,7 @@ This does not mean they have to be visually different, since humans perceive col
 We assume the material, object and group IDs starts at zero. Every ID x that appears means that there have to be at least x colors.
 We can define a sequence of colors that starts with the maximal distance (black/white), then contains the primary colors, the mixtures between the primary colors, then the mixtures between the mixtures, and so on.
 If we index this sequence with the material/object/group ID, the low IDs get colors that are very different form each other and with rising ID, the colors get more and more similar.
-This algorithm, given an index, creates the color that would appear in this sequence at that index.
+This algorithm, given an ID, creates the color that would appear in this sequence at that index.
 
 Each color has three channels. The channels contain the values of red, blue and green.
 We can generate many different colors with only a small set of different channel values, which are used in many different combinations.
@@ -50,4 +50,4 @@ The number of intensity values we need to generate enough colors for a given ID 
 
 The algorithm now consists of two main steps.
 First, we generate a pattern that determines which intensities we have to use and returns indices on the sequence of intensities.
-Second, we determine the actual value for this index for each channel and normalize it to [0.0,1.0].
+Second, we determine the actual value for each of the three indices in the pattern and normalize it to [0.0,1.0].
