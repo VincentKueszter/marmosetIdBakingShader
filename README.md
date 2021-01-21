@@ -11,10 +11,12 @@ It will generate colors that are as different as possible to each other, at leas
 (Since ColorID maps are not supposed to be viewed by humans, I don’t think it’s necessary to make the colors as different as possible to the human eye.)
 
 # Installation
-- Navigate to where Toolbag 3 is installed, then to data\shader\bake
+- Navigate to where Toolbag is installed, then to data\shader\bake
 - make a backup of bakeIDs.frag
-- copy bakeIDs.frag from the zip into the folder, overwriting the old bakeIDs.frag
-- start Marmoset Toolbag 3
+- depending on your Toolbag version, copy bakeIDs.frag from the v3 or the v4 folder into data\shader\bake, overwriting the old bakeIDs.frag
+- start Marmoset Toolbag
+
+It should now bake with the improved Id BakingShader. To make sure everything works correctly now:
 - navigate to Help->Dev->Console...
 - click "Show only Errors"
 - click Help->Dev->Reload Shaders
