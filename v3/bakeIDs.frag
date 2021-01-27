@@ -1,7 +1,7 @@
 #include "traceRay.frag"
 #include "utils.frag"
 
-#define MAX_NUMBER_OF_IDS 1024 //has to be 1024, due to getNumberOfIntensities not being designed for bigger inputs
+#define MAX_NUMBER_OF_IDS 1024 //has to be 1024, due to getFloorOfCubeRoot not being designed for bigger inputs
 
 //workaround to write vector at dynamic index, to avoid error X3500: Array reference cannot be used as an l-value,not natively addressable
 void fillVectorAtIndex (inout uvec3 vec, uint index, int value)
@@ -164,13 +164,13 @@ END_PARAMS
 		uint gid = uGroupIDs[ hit.triangleIndex ];
 
 		//output0: Mat, Obj, and Group ID
-		OUT_COLOR0.rgb = getUniqueColor( id % MAX_NUMBER_OF_IDS ); //modulo necessary for getNumberOfIntensities
+		OUT_COLOR0.rgb = getUniqueColor( id % MAX_NUMBER_OF_IDS ); //modulo necessary for getFloorOfCubeRoot
 		OUT_COLOR0.a = 1.0;
 
-		OUT_COLOR1.rgb = getUniqueColor( oid % MAX_NUMBER_OF_IDS ); //modulo necessary for getNumberOfIntensities
+		OUT_COLOR1.rgb = getUniqueColor( oid % MAX_NUMBER_OF_IDS ); //modulo necessary for getFloorOfCubeRoot
 		OUT_COLOR1.a = 1.0;
 
-		OUT_COLOR2.rgb = getUniqueColor( gid % MAX_NUMBER_OF_IDS ); //modulo necessary for getNumberOfIntensities
+		OUT_COLOR2.rgb = getUniqueColor( gid % MAX_NUMBER_OF_IDS ); //modulo necessary for getFloorOfCubeRoot
 		OUT_COLOR2.a = 1.0;
 	}
 }
